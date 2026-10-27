@@ -8,7 +8,7 @@ permissions: {}
 
 jobs:
   title:
-    uses: ./.github/workflows/pr-title.yml
+    uses: $/.github/workflows/pr-title.yml
     permissions:
       pull-requests: read
     with:
