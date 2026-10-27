@@ -25,12 +25,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/docs-check
+      - uses: $/.github/actions/docs-check
       - name: Check the documentation script
         run: python3 -m py_compile scripts/docs_check.py
 
   zizmor:
-    uses: ./.github/workflows/zizmor.yml
+    uses: $/.github/workflows/zizmor.yml
     permissions:
       contents: read
 
