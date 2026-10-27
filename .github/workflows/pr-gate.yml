@@ -1,0 +1,64 @@
+# Closes a pull request from outside the organization unless it closes an
+# issue labeled `accepted`, as CONTRIBUTING.md asks. Members, collaborators
+# and bots pass. It reads the pull request through the API and never checks
+# out or runs its code, so it is safe under pull_request_target.
+#
+#   on:
+#     # zizmor flags this trigger; the gate checks nothing out, so mark it
+#     # with `# zizmor: ignore[dangerous-triggers]` and this reason.
+#     pull_request_target:
+#       types: [opened, reopened, edited]
+#   permissions: {}
+#   jobs:
+#     gate:
+#       uses: Vexatra/.github/.github/workflows/pr-gate.yml@<sha> # v<version>
+#       permissions:
+#         pull-requests: write
+#         issues: read
+name: pr-gate
+
+on:
+  workflow_call:
+
+permissions: {}
+
+jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    permissions:
+      pull-requests: write
+      issues: read
+    steps:
+      - name: Linked accepted issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          ASSOCIATION: ${{ github.event.pull_request.author_association }}
+          AUTHOR_TYPE: ${{ github.event.pull_request.user.type }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          case "$ASSOCIATION" in OWNER|MEMBER|COLLABORATOR) echo "maintainer"; exit 0 ;; esac
+          [ "$AUTHOR_TYPE" = Bot ] && { echo "bot"; exit 0; }
+          # A member whose membership is private shows as a contributor, so
+          # the repository permission decides.
+          permission=$(gh api "repos/$REPO/collaborators/$AUTHOR/permission" --jq .permission 2>/dev/null || echo none)
+          case "$permission" in admin|maintain|write) echo "maintainer"; exit 0 ;; esac
+          owner=${REPO%/*} name=${REPO#*/}
+          # An issue counts only in this repository, open, and labeled.
+          accepted=$(gh api graphql -F owner="$owner" -F name="$name" -F number="$NUMBER" -f query='
+            query($owner: String!, $name: String!, $number: Int!) {
+              repository(owner: $owner, name: $name) {
+                pullRequest(number: $number) {
+                  closingIssuesReferences(first: 10) {
+                    nodes { number state repository { nameWithOwner } labels(first: 20) { nodes { name } } }
+                  }
+                }
+              }
+            }' | jq --arg repo "$REPO" '[.data.repository.pullRequest.closingIssuesReferences.nodes[]
+                      | select(.repository.nameWithOwner == $repo and .state == "OPEN")
+                      | select(any(.labels.nodes[]; .name == "accepted")) | .number] | length')
+          if [ "$accepted" -gt 0 ]; then echo "closes an accepted issue"; exit 0; fi
+          gh pr close "$NUMBER" -R "$REPO" --comment "Thank you for the pull request. This project accepts pull requests only for an issue a maintainer has labeled \`accepted\`; please open or find the issue first and link it with \`Closes #<number>\`. See [CONTRIBUTING.md](https://github.com/Vexatra/.github/blob/main/CONTRIBUTING.md)."
+          exit 1

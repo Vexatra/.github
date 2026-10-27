@@ -1,0 +1,12 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    # A release is taken a week after it is published, once others have run it.
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]
