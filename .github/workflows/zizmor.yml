@@ -6,16 +6,27 @@
 #   jobs:
 #     zizmor:
 #       uses: Vexatra/.github/.github/workflows/zizmor.yml@<sha> # v<version>
+#       with:
+#         runner: '["self-hosted", "linux", "vexatra"]'   # private repositories
+#
+# zizmor is installed from PyPI into a throwaway virtual environment rather
+# than run from its Docker image, so the job also runs on self-hosted runners
+# whose user has no Docker access.
 name: zizmor
 
 on:
   workflow_call:
+    inputs:
+      runner:
+        description: JSON for runs-on. Private repositories pass their self-hosted labels, since GitHub-hosted minutes are limited for them.
+        type: string
+        default: '"ubuntu-24.04"'
 
 permissions: {}
 
 jobs:
   zizmor:
-    runs-on: ubuntu-24.04
+    runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 5
     permissions:
       contents: read
@@ -23,8 +34,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: zizmorcore/zizmor-action@85b2b9fb8e3325e7a23d7d0a9d7ba5ae0f999e3e # v0.7.1
-        with:
-          version: 1.30.1
-          advanced-security: false
-          annotations: true
+      - name: Audit the workflows
+        env:
+          VERSION: 1.30.1
+          # Turns on the online audits (impostor commits, known-vulnerable
+          # actions, ref confusion, stale action refs).
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 -m venv "$RUNNER_TEMP/zizmor"
+          "$RUNNER_TEMP/zizmor/bin/pip" install --quiet --disable-pip-version-check --no-cache-dir --only-binary=:all: "zizmor==$VERSION"
+          "$RUNNER_TEMP/zizmor/bin/zizmor" --format=github .

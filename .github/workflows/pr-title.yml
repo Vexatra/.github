@@ -9,6 +9,7 @@ name: pull request title
 #       uses: Vexatra/.github/.github/workflows/pr-title.yml@main
 #       with:
 #         scopes: core text tools
+#         runner: '["self-hosted", "linux", "vexatra"]'   # private repositories
 
 on:
   workflow_call:
@@ -17,13 +18,17 @@ on:
         description: Space-separated scopes the repository accepts. Empty accepts any lower-case scope.
         type: string
         default: ""
+      runner:
+        description: JSON for runs-on. Private repositories pass their self-hosted labels, since GitHub-hosted minutes are limited for them.
+        type: string
+        default: '"ubuntu-24.04"'
 
 permissions:
   pull-requests: read
 
 jobs:
   title:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 2
     steps:
       - name: Check the title
