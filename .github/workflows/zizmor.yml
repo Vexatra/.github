@@ -41,6 +41,7 @@ jobs:
           # actions, ref confusion, stale action refs).
           GH_TOKEN: ${{ github.token }}
         run: |
-          python3 -m venv "$RUNNER_TEMP/zizmor"
+          # -I keeps a checked-out venv/ package in the workspace from loading.
+          python3 -I -m venv "$RUNNER_TEMP/zizmor"
           "$RUNNER_TEMP/zizmor/bin/pip" install --quiet --disable-pip-version-check --no-cache-dir --only-binary=:all: "zizmor==$VERSION"
           "$RUNNER_TEMP/zizmor/bin/zizmor" --format=github .

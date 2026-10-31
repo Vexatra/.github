@@ -38,7 +38,9 @@ jobs:
           AUTHOR: ${{ github.event.pull_request.user.login }}
           BODY: ${{ github.event.pull_request.body }}
         run: |
-          python3 - <<'EOF'
+          # -I: on a self-hosted runner the workspace may hold an earlier
+          # checkout, whose modules must not shadow the standard library.
+          python3 -I - <<'EOF'
           import os, re, sys
           title = os.environ["TITLE"]
           scopes = os.environ["SCOPES"].split()
