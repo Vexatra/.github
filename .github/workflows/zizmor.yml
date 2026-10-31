@@ -37,7 +37,10 @@ jobs:
       - name: Audit the workflows
         env:
           VERSION: 1.30.1
+          # Turns on the online audits (impostor commits, known-vulnerable
+          # actions, ref confusion, stale action refs).
+          GH_TOKEN: ${{ github.token }}
         run: |
           python3 -m venv "$RUNNER_TEMP/zizmor"
-          "$RUNNER_TEMP/zizmor/bin/pip" install --quiet --disable-pip-version-check "zizmor==$VERSION"
+          "$RUNNER_TEMP/zizmor/bin/pip" install --quiet --disable-pip-version-check --no-cache-dir --only-binary=:all: "zizmor==$VERSION"
           "$RUNNER_TEMP/zizmor/bin/zizmor" --format=github .
