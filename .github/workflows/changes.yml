@@ -6,6 +6,8 @@
 #   jobs:
 #     changes:
 #       uses: Vexatra/.github/.github/workflows/changes.yml@<sha> # v<version>
+#       with:
+#         runner: '["self-hosted", "linux", "vexatra"]'   # private repositories
 #       permissions:
 #         pull-requests: read
 #     build:
@@ -20,6 +22,10 @@ on:
         description: Extended regular expression of the paths that are documentation only.
         type: string
         default: '^(docs/|\.github/ISSUE_TEMPLATE/)|\.md$'
+      runner:
+        description: JSON for runs-on. Private repositories pass their self-hosted labels, since GitHub-hosted minutes are limited for them.
+        type: string
+        default: '"ubuntu-24.04"'
     outputs:
       code:
         description: '"true" when anything beyond documentation changed.'
@@ -29,7 +35,7 @@ permissions: {}
 
 jobs:
   changes:
-    runs-on: ubuntu-24.04
+    runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 2
     permissions:
       pull-requests: read
